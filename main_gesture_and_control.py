@@ -22,6 +22,8 @@ class Test:
         if frames and cam.center_detect and cam.move_detect:
             result, confidence, top_3 = model.run_demo_wrapper(np.expand_dims(frames,0))
             print("result :{}, confidence:{}, top_3:({})".format(result, confidence, top_3))
+            
+        if confidence > 0.7:    
             requests.get('http://192.168.0.21:3001/api/v1/actions/action/{}/{}_{}_{}_{}_{}'.format('home', result, confidence, 'device', 'controlA', 'controlB'))
 
 

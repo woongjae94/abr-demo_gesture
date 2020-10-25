@@ -1,0 +1,1 @@
+sudo docker run --gpus '"device=1"' --link cam_container -v ~/Desktop/abr-demo_gesture:/home/app -it --rm --name Gesture_container gesture_image python main_gesture_and_control.py
