@@ -8,7 +8,9 @@ import socket
 #from socket import *
 import threading
 
+global data
 data = 'None'
+global send_count
 send_count = 3
 
 class Gesture:
