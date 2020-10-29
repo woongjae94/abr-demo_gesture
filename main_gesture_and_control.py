@@ -4,12 +4,16 @@ import requests
 import json
 import numpy as np
 import time
-from socket import *
+import socket
+#from socket import *
+import threading
 
+data = 'None'
+send_count = 3
 
-class Test:
+class Gesture:
     def main_loop(self):
-
+        #print("Hue lamp connected -- now state : ", light.get_light(1, 'on'))
         while True:
             self.run_demo()
 
@@ -23,8 +27,14 @@ class Test:
             result, confidence, top_3 = model.run_demo_wrapper(np.expand_dims(frames,0))
             print("result :{}, confidence:{}, top_3:({})".format(result, confidence, top_3))
             
-        if confidence > 0.7:    
-            requests.get('http://192.168.0.21:3001/api/v1/actions/action/{}/{}_{}_{}_{}_{}'.format('home', result, confidence, 'device', 'controlA', 'controlB'))
+        if confidence > 0.6:
+            #requests.get('http://192.168.0.21:3001/api/v1/actions/action/{}/{}_{}_{}_{}_{}'.format('home', result, confidence, 'phue_lamp', 'controlA', 'controlB'))
+            t_lock.acquire()
+            global data
+            global send_count
+            send_count = 3
+            data = result
+            t_lock.release()
 
 
         # if confidence > 0.3 and result!='Doing other things':
@@ -32,8 +42,13 @@ class Test:
 
         #     print('home', self.device, self.device_status, paramA, paramB, result)
 
-        else:
-            result = 'Waiting...'
+        # else:
+        #     result = 'Waiting...'
+
+        # if result == 'Thumb Up':
+        #     light.set_light(1, 'on', True)
+        # if result == 'Thumb Down':
+        #     light.set_light(1, 'on', False)
 
         # if not eval(cam.args.debug) and result != 'Waiting...':
         
@@ -54,14 +69,46 @@ class Test:
         #     'http://127.0.0.1:5000/state/set/gesture',params={'gesture': result})
         # # time.sleep(0.5)
 
+def send_handler(client_socket):
+    while True:
+        t_lock.acquire()
+        global send_count
+        if send_count is not 0:
+            global data
+            senddata = data+'$'
+            for i in range(send_count):
+                client_socket.send(senddata.encode('utf-8'))
+        send_count = 0
+        t_lock.release()
+    client_socket.close()
 
 if __name__ == '__main__':
     print("## load TF model")
     model = TFModel()
     print("## load complete\n## set camera")
     cam = CAM()
-    print("## setting complete\n## connect controlable devices")
-    multi_device = Test()
+    print("## setting complete\n")
+    multi_device = Gesture()
 
-    print("## connect complete\n## start demo")
+    #Hue_ip = '192.168.0.103'
+    #phue_lamp = Bridge(Hue_ip)
+    #phue_lamp.connect()
+
+    server_ip = 'Socket_container'
+    port = 8282
+    t_lock = threading.Lock()
+
+    client = "Gesture"
+    print("## try to connect socket server")
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client_socket.connect((server_ip, port))
+    client_socket.send(client.encode('utf-8'))
+    print("connect complete")
+
+    send_thread = threading.Thread(target=send_handler, args=(client_socket,))
+    send_thread.daemon = True
+    send_thread.start()
+    print("## start socket thread")
+
+    print("## start demo")
     multi_device.main_loop()
