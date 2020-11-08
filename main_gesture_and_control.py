@@ -7,6 +7,7 @@ import time
 import socket
 #from socket import *
 import threading
+#import multiprocessing
 
 global data
 data = 'None'
@@ -15,7 +16,6 @@ send_count = 3
 
 class Gesture:
     def main_loop(self):
-        #print("Hue lamp connected -- now state : ", light.get_light(1, 'on'))
         while True:
             self.run_demo()
 
@@ -24,12 +24,21 @@ class Gesture:
         frames = cam.get_frames(num=cam.args.video_length,
                                   fps=cam.args.fps,
                                   cam=0)
+        
+        if not frames:
+            t_lock.acquire()
+            global data
+            global send_count
+            data = "LostContact"
+            send_count = 3
+            t_lock.release()
+            pass
 
         if frames and cam.center_detect and cam.move_detect:
             result, confidence, top_3 = model.run_demo_wrapper(np.expand_dims(frames,0))
             print("result :{}, confidence:{}, top_3:({})".format(result, confidence, top_3))
             
-        if confidence > 0.6:
+        if confidence > 0.5:
             #requests.get('http://192.168.0.21:3001/api/v1/actions/action/{}/{}_{}_{}_{}_{}'.format('home', result, confidence, 'phue_lamp', 'controlA', 'controlB'))
             t_lock.acquire()
             global data
@@ -39,50 +48,19 @@ class Gesture:
             t_lock.release()
 
 
-        # if confidence > 0.3 and result!='Doing other things':
-        #     self.activation, self.device_status, paramA, paramB = self.response(result)
-
-        #     print('home', self.device, self.device_status, paramA, paramB, result)
-
-        # else:
-        #     result = 'Waiting...'
-
-        # if result == 'Thumb Up':
-        #     light.set_light(1, 'on', True)
-        # if result == 'Thumb Down':
-        #     light.set_light(1, 'on', False)
-
-        # if not eval(cam.args.debug) and result != 'Waiting...':
-        
-        #     #print('control')
-        #     # to main controller...
-        #     try:
-        #         #print('test')
-        #         #requests.get(
-        #         #'https://ceslea.ml:50001/api/v1/actions/action/{}/{}'.format('home', result)) # ceslea.ml > domain error
-        #         # requests.get('http://192.168.0.4:3001/api/v1/actions/action/{}/{}_{}_{}_{}_{}'.format('home', self.device, self.device_status, paramA, paramB, result))
-        #         requests.get('http://192.168.0.21:3001/api/v1/actions/action/{}/{}_{}_{}_{}_{}'.format('home', self.device, self.device_status, paramA, paramB, result))
-        
-        #     except:
-        #         pass
-        
-        # # to local webdemo page...
-        # requests.get(
-        #     'http://127.0.0.1:5000/state/set/gesture',params={'gesture': result})
-        # # time.sleep(0.5)
-
 def send_handler(client_socket):
-    while True:
-        t_lock.acquire()
-        global send_count
-        if send_count is not 0:
-            global data
-            senddata = data+'$'
-            for i in range(send_count):
+    try:
+        while True:
+            t_lock.acquire()
+            global send_count
+            if send_count is not 0:
+                global data
+                senddata = 3*(data+'$')
                 client_socket.send(senddata.encode('utf-8'))
-        send_count = 0
-        t_lock.release()
-    client_socket.close()
+            send_count = 0
+            t_lock.release()
+    except:
+        client_socket.close()
 
 if __name__ == '__main__':
     print("## load TF model")
@@ -92,12 +70,8 @@ if __name__ == '__main__':
     print("## setting complete\n")
     multi_device = Gesture()
 
-    #Hue_ip = '192.168.0.103'
-    #phue_lamp = Bridge(Hue_ip)
-    #phue_lamp.connect()
-
-    server_ip = 'Socket_container'
-    port = 8282
+    server_ip = 'Localhost'
+    port = 3019
     t_lock = threading.Lock()
 
     client = "Gesture"

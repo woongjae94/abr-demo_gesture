@@ -49,7 +49,7 @@ class CAM:
 
         # cam setting
         print("connect to cam streaming server ...")
-        cam_address = 'http://cam_container:8090/?action=stream'
+        cam_address = 'http://Localhost:3009/?action=stream'
         self.cap = cv2.VideoCapture(cam_address)
         self.cap.set(cv2.CAP_PROP_FPS, self.args.fps)
         self.cap.set(cv2.CAP_PROP_AUTOFOCUS, False)
@@ -107,6 +107,15 @@ class CAM:
                 return []
 
             _, frame = self.cap.read()
+
+            if not _:
+                try:
+                    self.cap.release()
+                    self.cap = cv2.VideoCapture('http://Localhost:3009/?action=stream')
+                except:
+                    print("trying to reconnect cam server but failed.")
+                    return False
+                return False
 
             if not seq:
                 r = np_detect(self.yolo, self.meta, frame)
@@ -201,7 +210,7 @@ class CAM:
                         print("Too long to compute")
                         self.cap.release()
                         print("reconnect to cam streaming server...")
-                        self.cap = cv2.VideoCapture('http://cam_container:8090/?action=stream')
+                        self.cap = cv2.VideoCapture('http://Localhost:3009/?action=stream')
                     return seq
 
 class TFModel:
