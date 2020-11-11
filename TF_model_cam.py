@@ -27,7 +27,7 @@ model_path = os.path.join('save_model', 'jester-finetune')
 class CAM:
     def __init__(self):
         parser = argparse.ArgumentParser(description="test TF on a single video")
-        parser.add_argument('--video_length', type=int, default=35)
+        parser.add_argument('--video_length', type=int, default=50)
 
         parser.add_argument('--fps', type=int, default=10)  # 6, 15(1920~424), 30(1280~320), 60
 
@@ -49,8 +49,8 @@ class CAM:
 
         # cam setting
         print("connect to cam streaming server ...")
-        cam_address = 'http://Localhost:3009/?action=stream'
-        self.cap = cv2.VideoCapture(cam_address)
+        self.cam_address = 'http://Localhost:3009/?action=stream'
+        self.cap = cv2.VideoCapture(self.cam_address)
         self.cap.set(cv2.CAP_PROP_FPS, self.args.fps)
         self.cap.set(cv2.CAP_PROP_AUTOFOCUS, False)
         print("connect success ...")
@@ -111,7 +111,7 @@ class CAM:
             if not _:
                 try:
                     self.cap.release()
-                    self.cap = cv2.VideoCapture('http://Localhost:3009/?action=stream')
+                    self.cap = cv2.VideoCapture(self.cam_address)
                 except:
                     print("trying to reconnect cam server but failed.")
                     return False
@@ -147,8 +147,8 @@ class CAM:
                 # # for ROI streaming
                 # requests.post('http://127.0.0.1:5000/update_stream', data=stream)
 
-                # # cv2.imshow('roi', full_frame)
-                # # cv2.waitKey(1)
+                cv2.imshow('roi', full_frame)
+                cv2.waitKey(1)
 
             ymin, ymax, xmin, xmax = int(y-h/2+2), int(y+h/2-2), int(x-w/2+2), int(x+w/2-2)
 
@@ -210,7 +210,7 @@ class CAM:
                         print("Too long to compute")
                         self.cap.release()
                         print("reconnect to cam streaming server...")
-                        self.cap = cv2.VideoCapture('http://Localhost:3009/?action=stream')
+                        self.cap = cv2.VideoCapture(self.cam_address)
                     return seq
 
 class TFModel:
